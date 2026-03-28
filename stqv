@@ -1,0 +1,82 @@
+import sounddevice as sd
+import numpy as np
+import scipy.io.wavfile as wav
+import speech_recognition as sr
+from googletrans import Translator
+
+# Поддерживаемые языки
+languages = {
+    'ru': 'Русский',
+    'en': 'Английский',
+    'es': 'Испанский',
+    'pt': 'Португальский',
+    'id': 'Индонезийский',
+    'pl': 'Польский',
+    'it': 'Итальянский',
+    'tr': 'Турецкий',
+    'zh-cn': 'Китайский (упрощенный)',
+    'zh-tw': 'Китайский (традиционный)'
+}
+
+def select_language(prompt):
+    print(f"😊 {prompt}")
+    for code, lang in languages.items():
+        print(f"'{code}': {lang}")
+    while True:
+        choice = input("📝 Введите код языка: ").strip()
+        if choice in languages:
+            return choice
+        else:
+            print("❌ Некорректный код. Попробуйте снова.")
+
+# Основной цикл
+while True:
+    # Запись голоса
+    duration = 5  # секунды
+    sample_rate = 44100
+    print("🎙️ Говори сейчас...")
+    recording = sd.rec(
+        int(duration * sample_rate),
+        samplerate=sample_rate,
+        channels=1,
+        dtype="int16"
+    )
+    sd.wait()
+    wav.write("output.wav", sample_rate, recording)
+    print("✅ Запись завершена, распознаем...")
+
+    # Спрашиваем язык для распознавания
+    recognize_lang = select_language("🎯 Выберите язык для распознавания:")
+
+    recognizer = sr.Recognizer()
+    with sr.AudioFile("output.wav") as source:
+        audio = recognizer.record(source)
+
+    # Распознавание
+    try:
+        text = recognizer.recognize_google(audio, language=recognize_lang)
+        print(f"🗣️ Ты сказал: {text}")
+    except sr.UnknownValueError:
+        print("🤷‍♂️ Не удалось распознать речь.")
+        continue
+    except sr.RequestError as e:
+        print(f"🚫 Ошибка сервиса: {e}")
+        continue
+
+    # Спрашиваем язык для перевода
+    target_lang = select_language("🌍 На какой язык перевести?")
+
+    # Перевод
+    translator = Translator()
+    try:
+        translated = translator.translate(text, dest=target_lang)
+        print(f"🌟 Перевод на {languages[target_lang]} ({target_lang}): {translated.text}")
+    except Exception as e:
+        print(f"⚠️ Ошибка перевода: {e}")
+
+    # Вопрос о продолжении
+    continue_choice = input("🔄 Перевести еще? (да/нет): ").strip().lower()
+    if continue_choice != 'да':
+        print("👋 До свидания!")
+        break
+опиши работу этого кода
